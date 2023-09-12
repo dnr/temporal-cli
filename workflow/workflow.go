@@ -343,6 +343,11 @@ func NewWorkflowCommands() []*cli.Command {
 					Category: common.CategoryMain,
 				},
 				&cli.StringFlag{
+					Name:     common.FlagBuildID,
+					Usage:    common.FlagBuildIDResetUsage,
+					Category: common.CategoryMain,
+				},
+				&cli.StringFlag{
 					Name: common.FlagResetReapplyType,
 					Usage: "Event types to reapply after the reset point: " +
 						strings.Join(mapKeysToArray(resetReapplyTypesMap), ", ") + ". (default: All)",

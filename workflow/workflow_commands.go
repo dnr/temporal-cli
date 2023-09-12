@@ -49,6 +49,7 @@ var (
 		"FirstWorkflowTask":  "",
 		"LastWorkflowTask":   "",
 		"LastContinuedAsNew": "",
+		"BuildID":            common.FlagBuildID,
 	}
 	resetReapplyTypesMap = map[string]interface{}{
 		"":       enumspb.RESET_REAPPLY_TYPE_SIGNAL, // default value
@@ -882,25 +883,44 @@ func ResetWorkflow(c *cli.Context) error {
 
 	frontendClient := client.Factory(c.App).FrontendClient(c)
 
-	resetBaseRunID := rid
-	workflowTaskFinishID := eventID
-	if resetType != "" {
-		resetBaseRunID, workflowTaskFinishID, err = getResetEventIDByType(ctx, c, resetType, namespace, wid, rid, frontendClient)
-		if err != nil {
-			return fmt.Errorf("getting reset event ID by type failed: %w", err)
-		}
-	}
-	resp, err := frontendClient.ResetWorkflowExecution(ctx, &workflowservice.ResetWorkflowExecutionRequest{
+	reapplyType := resetReapplyTypesMap[resetReapplyType].(enumspb.ResetReapplyType)
+
+	req := &workflowservice.ResetWorkflowExecutionRequest{
 		Namespace: namespace,
 		WorkflowExecution: &commonpb.WorkflowExecution{
 			WorkflowId: wid,
-			RunId:      resetBaseRunID,
+			RunId:      rid,
 		},
-		Reason:                    fmt.Sprintf("%v:%v", common.GetCurrentUserFromEnv(), reason),
-		WorkflowTaskFinishEventId: workflowTaskFinishID,
-		RequestId:                 uuid.New(),
-		ResetReapplyType:          resetReapplyTypesMap[resetReapplyType].(enumspb.ResetReapplyType),
-	})
+		Reason:    fmt.Sprintf("%v:%v", common.GetCurrentUserFromEnv(), reason),
+		RequestId: uuid.New(),
+	}
+
+	if resetType == "BuildID" {
+		// Use new API
+		req.Options = &commonpb.ResetOptions{
+			Target: &commonpb.ResetOptions_BuildId{
+				BuildId: c.String(common.FlagBuildID),
+			},
+			ResetReapplyType: reapplyType,
+			// TODO: set CurrentRunOnly from flag
+		}
+	} else if resetType != "" {
+		// Use old API for compatibility
+		resetBaseRunID, workflowTaskFinishID, err := getResetEventIDByType(
+			ctx, c, resetType, namespace, wid, rid, frontendClient)
+		if err != nil {
+			return fmt.Errorf("getting reset event ID by type failed: %w", err)
+		}
+		req.WorkflowExecution.RunId = resetBaseRunID
+		req.WorkflowTaskFinishEventId = workflowTaskFinishID
+		req.ResetReapplyType = reapplyType
+	} else {
+		// No "type", just an event id
+		req.WorkflowTaskFinishEventId = eventID
+		req.ResetReapplyType = reapplyType
+	}
+
+	resp, err := frontendClient.ResetWorkflowExecution(ctx, req)
 	if err != nil {
 		return fmt.Errorf("reset failed: %w", err)
 	}

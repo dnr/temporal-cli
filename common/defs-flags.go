@@ -163,4 +163,5 @@ const (
 	FlagTaskQueueForReachabilityUsage  = "Which Task Queue(s) to constrain the reachability search to. May be specified multiple times."
 	FlagTaskQueueForMarkBadUsage       = "Name of the Task Queue to modify. If not specified, apply to all Task Queues that the build id is associated with."
 	FlagReachabilityTypeUsage          = "Specify how you'd like to filter the reachability of Build IDs. Valid choices are `open` (reachable by one or more open workflows), `closed` (reachable by one or more closed workflows), or `existing` (reachable by either). If a Build ID is reachable by new workflows, that is always reported."
+	FlagBuildIDResetUsage              = "Reset to before the first workflow task processed by this build id. Used with --type=BuildID."
 )
