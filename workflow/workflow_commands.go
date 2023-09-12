@@ -928,32 +928,27 @@ func ResetWorkflow(c *cli.Context) error {
 	return nil
 }
 
-func processResets(c *cli.Context, namespace string, wes chan commonpb.WorkflowExecution, done chan bool, wg *sync.WaitGroup, params batchResetParamsType) {
-	for {
-		select {
-		case we := <-wes:
-			fmt.Println("received: ", we.GetWorkflowId(), we.GetRunId())
-			wid := we.GetWorkflowId()
-			rid := we.GetRunId()
-			var err error
-			for i := 0; i < 3; i++ {
-				err = doReset(c, namespace, wid, rid, params)
-				if err == nil {
-					break
-				}
-				if _, ok := err.(*serviceerror.InvalidArgument); ok {
-					break
-				}
-				fmt.Println("failed and retry...: ", wid, rid, err)
-				time.Sleep(time.Millisecond * time.Duration(rand.Intn(2000)))
+func processResets(c *cli.Context, namespace string, wes chan commonpb.WorkflowExecution, wg *sync.WaitGroup, params batchResetParamsType) {
+	defer wg.Done()
+	for we := range wes {
+		fmt.Println("received: ", we.GetWorkflowId(), we.GetRunId())
+		wid := we.GetWorkflowId()
+		rid := we.GetRunId()
+		var err error
+		for i := 0; i < 3; i++ {
+			err = doReset(c, namespace, wid, rid, params)
+			if err == nil {
+				break
 			}
-			time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
-			if err != nil {
-				fmt.Println("[ERROR] failed processing: ", wid, rid, err.Error())
+			if _, ok := err.(*serviceerror.InvalidArgument); ok {
+				break
 			}
-		case <-done:
-			wg.Done()
-			return
+			fmt.Println("failed and retry...: ", wid, rid, err)
+			time.Sleep(time.Millisecond * time.Duration(rand.Intn(2000)))
+		}
+		time.Sleep(time.Millisecond * time.Duration(rand.Intn(1000)))
+		if err != nil {
+			fmt.Println("[ERROR] failed processing: ", wid, rid, err.Error())
 		}
 	}
 }
@@ -1007,10 +1002,9 @@ func ResetInBatch(c *cli.Context) error {
 	wg := &sync.WaitGroup{}
 
 	wes := make(chan commonpb.WorkflowExecution)
-	done := make(chan bool)
 	for i := 0; i < parallel; i++ {
 		wg.Add(1)
-		go processResets(c, namespace, wes, done, wg, batchResetParams)
+		go processResets(c, namespace, wes, wg, batchResetParams)
 	}
 
 	// read exclude
@@ -1120,7 +1114,7 @@ func ResetInBatch(c *cli.Context) error {
 		}
 	}
 
-	close(done)
+	close(wes)
 	fmt.Println("wait for all goroutines...")
 	wg.Wait()
 
