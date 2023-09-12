@@ -6,6 +6,7 @@ import (
 
 	"github.com/temporalio/cli/common"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/exp/maps"
 )
 
 func NewWorkflowCommands() []*cli.Command {
@@ -339,7 +340,7 @@ func NewWorkflowCommands() []*cli.Command {
 				},
 				&cli.StringFlag{
 					Name:     common.FlagType,
-					Usage:    "Event type to which you want to reset: " + strings.Join(mapKeysToArray(resetTypesMap), ", "),
+					Usage:    "Event type to which you want to reset: " + strings.Join(maps.Keys(resetTypesMap), ", "),
 					Category: common.CategoryMain,
 				},
 				&cli.StringFlag{
@@ -350,7 +351,7 @@ func NewWorkflowCommands() []*cli.Command {
 				&cli.StringFlag{
 					Name: common.FlagResetReapplyType,
 					Usage: "Event types to reapply after the reset point: " +
-						strings.Join(mapKeysToArray(resetReapplyTypesMap), ", ") + ". (default: All)",
+						strings.Join(maps.Keys(resetReapplyTypesMap), ", ") + ". (default: All)",
 					Category: common.CategoryMain,
 				},
 			}...),
@@ -360,7 +361,7 @@ func NewWorkflowCommands() []*cli.Command {
 		},
 		{
 			Name:      "reset-batch",
-			Usage:     "Reset a batch of Workflow Executions by reset type (" + strings.Join(mapKeysToArray(resetTypesMap), "), "),
+			Usage:     "Reset a batch of Workflow Executions by reset type (" + strings.Join(maps.Keys(resetTypesMap), "), "),
 			UsageText: common.ResetBatchUsageText,
 			Flags: []cli.Flag{
 				&cli.StringFlag{
@@ -417,8 +418,13 @@ func NewWorkflowCommands() []*cli.Command {
 				},
 				&cli.StringFlag{
 					Name:     common.FlagType,
-					Usage:    "Event type to which you want to reset: " + strings.Join(mapKeysToArray(resetTypesMap), ", "),
+					Usage:    "Event type to which you want to reset: " + strings.Join(maps.Keys(resetTypesMap), ", "),
 					Required: true,
+					Category: common.CategoryMain,
+				},
+				&cli.StringFlag{
+					Name:     common.FlagBuildID,
+					Usage:    common.FlagBuildIDResetUsage,
 					Category: common.CategoryMain,
 				},
 				&cli.BoolFlag{

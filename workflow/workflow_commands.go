@@ -41,17 +41,18 @@ import (
 	"go.temporal.io/server/common/payload"
 	"go.temporal.io/server/common/primitives/timestamp"
 	"go.temporal.io/server/common/searchattribute"
+	"golang.org/x/exp/maps"
 )
 
 var (
 	tableHeaderBlue = tablewriter.Colors{tablewriter.FgHiBlueColor}
-	resetTypesMap   = map[string]interface{}{
-		"FirstWorkflowTask":  "",
-		"LastWorkflowTask":   "",
-		"LastContinuedAsNew": "",
-		"BuildID":            common.FlagBuildID,
+	resetTypesMap   = map[string][]string{
+		"FirstWorkflowTask":  nil,
+		"LastWorkflowTask":   nil,
+		"LastContinuedAsNew": nil,
+		"BuildID":            []string{common.FlagBuildID},
 	}
-	resetReapplyTypesMap = map[string]interface{}{
+	resetReapplyTypesMap = map[string]enumspb.ResetReapplyType{
 		"":       enumspb.RESET_REAPPLY_TYPE_SIGNAL, // default value
 		"Signal": enumspb.RESET_REAPPLY_TYPE_SIGNAL,
 		"None":   enumspb.RESET_REAPPLY_TYPE_NONE,
@@ -877,17 +878,16 @@ func ResetWorkflow(c *cli.Context) error {
 	resetType := c.String(common.FlagType)
 	extraForResetType, ok := resetTypesMap[resetType]
 	if !ok && eventID <= 0 {
-		return fmt.Errorf("specify either valid event id or reset type (one of %s)", strings.Join(mapKeysToArray(resetTypesMap), ", "))
+		return fmt.Errorf("specify either valid event id or reset type (one of %s)", strings.Join(maps.Keys(resetTypesMap), ", "))
 	}
-	if ok && len(extraForResetType.(string)) > 0 {
-		value := c.String(extraForResetType.(string))
-		if len(value) == 0 {
-			return fmt.Errorf("option %s is required", extraForResetType.(string))
+	for _, extra := range extraForResetType {
+		if len(c.String(extra)) == 0 {
+			return fmt.Errorf("option %q is required", extra)
 		}
 	}
 	resetReapplyType := c.String(common.FlagResetReapplyType)
 	if _, ok := resetReapplyTypesMap[resetReapplyType]; !ok {
-		return fmt.Errorf("must specify valid reset reapply type: %v", strings.Join(mapKeysToArray(resetReapplyTypesMap), ", "))
+		return fmt.Errorf("must specify valid reset reapply type: %v", strings.Join(maps.Keys(resetReapplyTypesMap), ", "))
 	}
 
 	ctx, cancel := common.NewContext(c)
@@ -895,7 +895,7 @@ func ResetWorkflow(c *cli.Context) error {
 
 	frontendClient := client.Factory(c.App).FrontendClient(c)
 
-	reapplyType := resetReapplyTypesMap[resetReapplyType].(enumspb.ResetReapplyType)
+	reapplyType := resetReapplyTypesMap[resetReapplyType]
 
 	req := &workflowservice.ResetWorkflowExecutionRequest{
 		Namespace: namespace,
@@ -996,10 +996,10 @@ func ResetInBatch(c *cli.Context) error {
 	extraForResetType, ok := resetTypesMap[resetType]
 	if !ok {
 		return fmt.Errorf("reset type is not supported: %v", extraForResetType)
-	} else if len(extraForResetType.(string)) > 0 {
-		value := c.String(extraForResetType.(string))
-		if len(value) == 0 {
-			return fmt.Errorf("option %s is required", extraForResetType.(string))
+	}
+	for _, extra := range extraForResetType {
+		if len(c.String(extra)) == 0 {
+			return fmt.Errorf("option %q is required", extra)
 		}
 	}
 
@@ -1560,14 +1560,6 @@ func removePrevious2LinesFromTerminal() {
 	fmt.Printf("\033[2K")
 	fmt.Printf("\033[1A")
 	fmt.Printf("\033[2K")
-}
-
-func mapKeysToArray(m map[string]interface{}) []string {
-	var out []string
-	for k := range m {
-		out = append(out, k)
-	}
-	return out
 }
 
 func ParseFoldStatusList(flagValue string) ([]enumspb.WorkflowExecutionStatus, error) {
