@@ -958,6 +958,7 @@ type batchResetParamsType struct {
 	skipOpen             bool
 	nonDeterministicOnly bool
 	skipBaseNotCurrent   bool
+	buildId              string
 	dryRun               bool
 	resetType            string
 }
@@ -991,6 +992,7 @@ func ResetInBatch(c *cli.Context) error {
 		skipOpen:             c.Bool(common.FlagSkipCurrentOpen),
 		nonDeterministicOnly: c.Bool(common.FlagNonDeterministic),
 		skipBaseNotCurrent:   c.Bool(common.FlagSkipBaseIsNotCurrent),
+		buildId:              c.String(common.FlagBuildID),
 		dryRun:               c.Bool(common.FlagDryRun),
 		resetType:            resetType,
 	}
@@ -1169,26 +1171,44 @@ func doReset(c *cli.Context, namespace, wid, rid string, params batchResetParams
 		}
 	}
 
-	resetBaseRunID, workflowTaskFinishID, err := getResetEventIDByType(ctx, c, params.resetType, namespace, wid, rid, frontendClient)
-	if err != nil {
-		return printErrorAndReturn("getResetEventIDByType failed", err)
+	req := &workflowservice.ResetWorkflowExecutionRequest{
+		Namespace: namespace,
+		WorkflowExecution: &commonpb.WorkflowExecution{
+			WorkflowId: wid,
+			RunId:      rid,
+		},
+		RequestId: uuid.New(),
+		Reason:    fmt.Sprintf("%v:%v", common.GetCurrentUserFromEnv(), params.reason),
 	}
-	fmt.Println("WorkflowTaskFinishEventId for reset:", wid, rid, resetBaseRunID, workflowTaskFinishID)
+
+	if params.resetType == "BuildID" {
+		// Use new API
+		req.Options = &commonpb.ResetOptions{
+			Target: &commonpb.ResetOptions_BuildId{
+				BuildId: params.buildId,
+			},
+			// TODO: set ResetReapplyType and other flags
+		}
+	} else {
+		resetBaseRunID, workflowTaskFinishID, err := getResetEventIDByType(ctx, c, params.resetType, namespace, wid, rid, frontendClient)
+		if err != nil {
+			return printErrorAndReturn("getResetEventIDByType failed", err)
+		}
+		fmt.Println("WorkflowTaskFinishEventId for reset:", wid, rid, resetBaseRunID, workflowTaskFinishID)
+		req.WorkflowExecution.RunId = resetBaseRunID
+		req.WorkflowTaskFinishEventId = workflowTaskFinishID
+	}
 
 	if params.dryRun {
-		fmt.Printf("dry run to reset wid: %v, rid:%v to baseRunId:%v, eventId:%v \n", wid, rid, resetBaseRunID, workflowTaskFinishID)
+		if params.resetType == "BuildID" {
+			fmt.Printf(
+				"dry run to reset wid: %v, rid:%v to buildId:%v\n", wid, rid, params.buildId)
+		} else {
+			fmt.Printf("dry run to reset wid: %v, rid:%v to baseRunId:%v, eventId:%v \n",
+				wid, rid, req.WorkflowExecution.RunId, req.WorkflowTaskFinishEventId)
+		}
 	} else {
-		resp2, err := frontendClient.ResetWorkflowExecution(ctx, &workflowservice.ResetWorkflowExecutionRequest{
-			Namespace: namespace,
-			WorkflowExecution: &commonpb.WorkflowExecution{
-				WorkflowId: wid,
-				RunId:      resetBaseRunID,
-			},
-			WorkflowTaskFinishEventId: workflowTaskFinishID,
-			RequestId:                 uuid.New(),
-			Reason:                    fmt.Sprintf("%v:%v", common.GetCurrentUserFromEnv(), params.reason),
-		})
-
+		resp2, err := frontendClient.ResetWorkflowExecution(ctx, req)
 		if err != nil {
 			return printErrorAndReturn("ResetWorkflowExecution failed", err)
 		}
