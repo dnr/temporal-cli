@@ -130,6 +130,21 @@ func BuildIDPromoteSet(c *cli.Context) error {
 	return updateBuildIDs(c, operation)
 }
 
+// BuildIDMarkBad implements the `update-build-ids mark-bad` subcommand
+func BuildIDMarkBad(c *cli.Context) error {
+	buildID := c.String(common.FlagBuildID)
+	promoteBuildID := c.String(common.FlagPromoteBuildID)
+	operation := workflowservice.UpdateWorkerBuildIdCompatibilityRequest{
+		Operation: &workflowservice.UpdateWorkerBuildIdCompatibilityRequest_MarkBadBuild_{
+			MarkBadBuild: &workflowservice.UpdateWorkerBuildIdCompatibilityRequest_MarkBadBuild{
+				BadBuildId:     buildID,
+				PromoteBuildId: promoteBuildID,
+			},
+		},
+	}
+	return updateBuildIDs(c, operation)
+}
+
 // BuildIDPromoteInSet implements the `update-build-ids promote-id-in-set` subcommand
 func BuildIDPromoteInSet(c *cli.Context) error {
 	buildID := c.String(common.FlagBuildID)

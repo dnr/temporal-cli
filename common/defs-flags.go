@@ -157,8 +157,10 @@ const (
 	FlagSetBuildIDAsDefaultUsage       = "When set, establishes the compatible set being targeted as the overall default for the queue. If a different set was the current default, the targeted set will replace it as the new default."
 	FlagPromoteSetBuildIDUsage         = "An existing build id whose containing set will be promoted."
 	FlagPromoteBuildIDUsage            = "An existing build id which will be promoted to be the default inside its containing set."
+	FlagMarkBadUsage                   = "An existing build id which will marked bad."
 	FlagMaxBuildIDSetsUsage            = "Limits how many compatible sets will be returned. Specify 1 to only return the current default major version set. 0 returns all sets."
 	FlagBuildIDReachabilityUsage       = "Which Build ID to get reachability information for. May be specified multiple times."
 	FlagTaskQueueForReachabilityUsage  = "Which Task Queue(s) to constrain the reachability search to. May be specified multiple times."
+	FlagTaskQueueForMarkBadUsage       = "Name of the Task Queue to modify. If not specified, apply to all Task Queues that the build id is associated with."
 	FlagReachabilityTypeUsage          = "Specify how you'd like to filter the reachability of Build IDs. Valid choices are `open` (reachable by one or more open workflows), `closed` (reachable by one or more closed workflows), or `existing` (reachable by either). If a Build ID is reachable by new workflows, that is always reported."
 )

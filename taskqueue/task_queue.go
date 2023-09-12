@@ -163,6 +163,35 @@ func NewTaskQueueCommands() []*cli.Command {
 						return BuildIDPromoteInSet(c)
 					},
 				},
+				{
+					Name:      "mark-bad",
+					Usage:     common.MarkBadDefinition,
+					UsageText: common.MarkBadDefinitionUsage,
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     common.FlagTaskQueue,
+							Aliases:  common.FlagTaskQueueAlias,
+							Usage:    common.FlagTaskQueueForMarkBadUsage,
+							Required: false,
+							Category: common.CategoryMain,
+						},
+						&cli.StringFlag{
+							Name:     common.FlagBuildID,
+							Usage:    common.FlagMarkBadUsage,
+							Required: true,
+							Category: common.CategoryMain,
+						},
+						&cli.StringFlag{
+							Name:     common.FlagPromoteBuildID,
+							Usage:    common.FlagPromoteBuildIDUsage,
+							Required: false,
+							Category: common.CategoryMain,
+						},
+					},
+					Action: func(c *cli.Context) error {
+						return BuildIDMarkBad(c)
+					},
+				},
 			},
 		},
 		{

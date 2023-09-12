@@ -137,6 +137,7 @@ var (
 	FlagYesAlias                   = []string{"y"}
 	FlagBuildID                    = "build-id"
 	FlagExistingCompatibleBuildID  = "existing-compatible-build-id"
+	FlagPromoteBuildID             = "promote-build-id"
 	FlagSetBuildIDAsDefault        = "set-as-default"
 	FlagMaxBuildIDSets             = "max-sets"
 	FlagReachabilityType           = "reachability-type"

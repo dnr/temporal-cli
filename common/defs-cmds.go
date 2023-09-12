@@ -94,6 +94,8 @@ const (
 	PromoteSetDefinitionUsage              = "If the set is already the default, this command has no effect."
 	PromoteIDInSetDefinition               = "Promote an existing build ID to become the default for its containing set."
 	PromoteIDInSetDefinitionUsage          = "New tasks compatible with the the set will be dispatched to the default id."
+	MarkBadDefinition                      = "Marks an existing build ID as a 'bad build' and optionally promote another."
+	MarkBadDefinitionUsage                 = "Bad builds will get no tasks and cannot be promoted again."
 )
 
 const BatchUsageText = `Batch commands change multiple [Workflow Executions](/concepts/what-is-a-workflow-execution)
