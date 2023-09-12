@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gogo/protobuf/types"
 	"github.com/olekukonko/tablewriter"
 	"github.com/pborman/uuid"
 	"github.com/temporalio/cli/batch"
@@ -51,6 +52,11 @@ var (
 		"LastWorkflowTask":   nil,
 		"LastContinuedAsNew": nil,
 		"BuildID":            []string{common.FlagBuildID},
+	}
+	batchResetTypesMap = map[string][]string{
+		"FirstWorkflowTask": nil,
+		"LastWorkflowTask":  nil,
+		"BuildID":           []string{common.FlagBuildID},
 	}
 	resetReapplyTypesMap = map[string]enumspb.ResetReapplyType{
 		"":       enumspb.RESET_REAPPLY_TYPE_SIGNAL, // default value
@@ -1121,6 +1127,42 @@ func ResetInBatch(c *cli.Context) error {
 	wg.Wait()
 
 	return nil
+}
+
+// ResetBatchV2 resets workflows using server-side batch operations
+func ResetBatchV2(c *cli.Context) error {
+	var options commonpb.ResetOptions
+
+	resetType := c.String(common.FlagType)
+	resetReapplyType := c.String(common.FlagResetReapplyType)
+
+	extraForResetType, ok := resetTypesMap[resetType]
+	if !ok {
+		return fmt.Errorf("specify valid reset type (one of %s)", strings.Join(maps.Keys(batchResetTypesMap), ", "))
+	}
+	for _, extra := range extraForResetType {
+		if len(c.String(extra)) == 0 {
+			return fmt.Errorf("option %q is required", extra)
+		}
+	}
+
+	switch resetType {
+	case "FirstWorkflowTask":
+		options.Target = &commonpb.ResetOptions_FirstWorkflowTask{FirstWorkflowTask: &types.Empty{}}
+	case "LastWorkflowTask":
+		options.Target = &commonpb.ResetOptions_LastWorkflowTask{LastWorkflowTask: &types.Empty{}}
+	case "BuildID":
+		options.Target = &commonpb.ResetOptions_BuildId{
+			BuildId: c.String(common.FlagBuildID),
+		}
+	}
+
+	options.ResetReapplyType, ok = resetReapplyTypesMap[resetReapplyType]
+	if !ok {
+		return fmt.Errorf("must specify valid reset reapply type: %v", strings.Join(maps.Keys(resetReapplyTypesMap), ", "))
+	}
+
+	return batch.BatchReset(c, &options)
 }
 
 func printErrorAndReturn(msg string, err error) error {

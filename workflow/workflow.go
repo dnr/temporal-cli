@@ -369,7 +369,8 @@ func NewWorkflowCommands() []*cli.Command {
 					Aliases:  common.FlagQueryAlias,
 					Usage:    common.FlagQueryResetBatch,
 					Category: common.CategoryMain,
-				}, &cli.StringFlag{
+				},
+				&cli.StringFlag{
 					Name:     common.FlagInputFile,
 					Usage:    common.FlagInputFileReset,
 					Category: common.CategoryMain,
@@ -435,6 +436,46 @@ func NewWorkflowCommands() []*cli.Command {
 			},
 			Action: func(c *cli.Context) error {
 				return ResetInBatch(c)
+			},
+		},
+		{
+			// FIXME: should this merge into just "reset" with a query flag?
+			Name:      "reset-batch-v2",
+			Usage:     "Reset a batch of Workflow Executions using server-side batch operation",
+			UsageText: common.ResetBatchUsageText,
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     common.FlagQuery,
+					Aliases:  common.FlagQueryAlias,
+					Usage:    common.FlagQueryResetBatch,
+					Category: common.CategoryMain,
+				},
+				&cli.StringFlag{
+					Name:     common.FlagReason,
+					Usage:    common.FlagReasonDefinition,
+					Required: true,
+					Category: common.CategoryMain,
+				},
+				&cli.StringFlag{
+					Name:     common.FlagType,
+					Usage:    "Event type to which you want to reset: " + strings.Join(maps.Keys(batchResetTypesMap), ", "),
+					Required: true,
+					Category: common.CategoryMain,
+				},
+				&cli.StringFlag{
+					Name:     common.FlagBuildID,
+					Usage:    common.FlagBuildIDResetUsage,
+					Category: common.CategoryMain,
+				},
+				&cli.StringFlag{
+					Name: common.FlagResetReapplyType,
+					Usage: "Event types to reapply after the reset point: " +
+						strings.Join(maps.Keys(resetReapplyTypesMap), ", ") + ". (default: All)",
+					Category: common.CategoryMain,
+				},
+			},
+			Action: func(c *cli.Context) error {
+				return ResetBatchV2(c)
 			},
 		},
 		{

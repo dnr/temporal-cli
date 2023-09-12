@@ -11,6 +11,7 @@ import (
 	"github.com/temporalio/tctl-kit/pkg/pager"
 	"github.com/urfave/cli/v2"
 	"go.temporal.io/api/batch/v1"
+	commonpb "go.temporal.io/api/common/v1"
 	"go.temporal.io/api/workflowservice/v1"
 	"go.temporal.io/server/common/collection"
 )
@@ -140,6 +141,22 @@ func BatchDelete(c *cli.Context) error {
 		Operation: &workflowservice.StartBatchOperationRequest_DeletionOperation{
 			DeletionOperation: &batch.BatchOperationDeletion{
 				Identity: operator,
+			},
+		},
+	}
+
+	return startBatchJob(c, &req)
+}
+
+// BatchReset resets workflows using a server-side batch operation
+func BatchReset(c *cli.Context, options *commonpb.ResetOptions) error {
+	operator := common.GetCurrentUserFromEnv()
+
+	req := workflowservice.StartBatchOperationRequest{
+		Operation: &workflowservice.StartBatchOperationRequest_ResetOperation{
+			ResetOperation: &batch.BatchOperationReset{
+				Identity: operator,
+				Options:  options,
 			},
 		},
 	}
